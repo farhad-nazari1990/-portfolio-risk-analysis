@@ -1,0 +1,391 @@
+# Retail Risk Kit - Quick Start Guide
+
+## 🚀 Get Started in 5 Minutes
+
+### Option 1: Local Installation (Recommended)
+
+```bash
+# 1. Clone or download the repository
+git clone <repo-url> && cd retail-risk-kit
+
+# 2. Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Run complete analysis on sample portfolio
+python run_all.py
+
+# 5. View results
+cat output/report.txt
+
+# 6. Launch interactive dashboard
+streamlit run dashboard.py
+```
+
+**That's it!** Your analysis is complete. Check the `output/` directory for results.
+
+---
+
+### Option 2: Using Docker
+
+```bash
+# 1. Build the image
+docker build -t retail-risk-kit .
+
+# 2. Run analysis
+docker run -v $(pwd)/output:/app/output retail-risk-kit
+
+# 3. View results
+cat output/report.txt
+
+# 4. Run dashboard
+docker run -p 8501:8501 retail-risk-kit streamlit run dashboard.py
+# Open browser to http://localhost:8501
+```
+
+---
+
+### Option 3: Using Make
+
+```bash
+# One command setup and run
+make quick-start
+
+# Or step by step
+make install
+make setup
+make run
+make dashboard
+```
+
+---
+
+## 📊 Analyzing Your Own Portfolio
+
+### Step 1: Create Your Portfolio JSON
+
+Create a file `my_portfolio.json`:
+
+```json
+{
+  "owner": "Your Name",
+  "currency": "USD",
+  "positions": [
+    {"ticker": "AAPL", "quantity": 50},
+    {"ticker": "MSFT", "quantity": 25},
+    {"ticker": "VTI", "quantity": 100},
+    {"ticker": "BND", "quantity": 200}
+  ],
+  "cash": 5000,
+  "benchmark": "SPY",
+  "risk_free_rate": 0.04,
+  "confidence_level": 0.95
+}
+```
+
+### Step 2: Run Analysis
+
+```bash
+python run_all.py --portfolio my_portfolio.json
+```
+
+### Step 3: Review Results
+
+```bash
+# View summary report
+cat output/report.txt
+
+# View detailed metrics (JSON)
+python -m json.tool output/risk_summary.json
+
+# View simulation results
+python -m json.tool output/simulation_results.json
+
+# Launch interactive dashboard
+streamlit run dashboard.py
+```
+
+---
+
+## 📈 Understanding Your Results
+
+### Key Files Generated
+
+```
+output/
+├── report.txt                  # Human-readable summary
+├── risk_summary.json          # Detailed risk metrics
+├── simulation_results.json    # Monte Carlo results
+├── prices_raw.parquet         # Downloaded price data
+├── prices_cleaned.parquet     # Cleaned prices
+└── returns.parquet            # Daily returns
+```
+
+### Key Metrics Explained
+
+**VaR (Value at Risk) - 95%**
+- Daily: $1,500 → "Only 5% chance of losing more than $1,500 in a day"
+- Monthly: $5,000 → "Only 5% chance of losing more than $5,000 in a month"
+
+**CVaR (Conditional VaR) - 95%**
+- $2,200 → "When you do hit that worst 5%, average loss is $2,200"
+
+**Sharpe Ratio**
+- 0.8 → "Earn 0.8% extra return per 1% of volatility"
+- Higher is better (good: >1.0, excellent: >2.0)
+
+**Maximum Drawdown**
+- 25% → "Worst peak-to-trough decline was 25%"
+- Shows resilience during market downturns
+
+**Beta vs Benchmark**
+- 1.0 → Moves with market
+- <1.0 → Less volatile than market
+- >1.0 → More volatile than market
+
+---
+
+## 🎯 Common Use Cases
+
+### 1. Regular Portfolio Check-up
+
+```bash
+# Run every month to track risk evolution
+python run_all.py --portfolio my_portfolio.json
+
+# Compare to previous month's results
+diff output/risk_summary.json previous_month_risk_summary.json
+```
+
+### 2. Stress Testing
+
+```bash
+# Run simulation with more scenarios
+python simulator.py \
+  --prices data/prices.parquet \
+  --portfolio my_portfolio.json \
+  --output stress_test.json \
+  --n-sims 50000
+```
+
+### 3. Comparing Portfolio Changes
+
+```bash
+# Analyze current portfolio
+python run_all.py --portfolio current.json --output output/current
+
+# Analyze proposed changes
+python run_all.py --portfolio proposed.json --output output/proposed
+
+# Compare results
+diff output/current/risk_summary.json output/proposed/risk_summary.json
+```
+
+### 4. Historical Analysis
+
+```bash
+# Analyze different time periods
+python run_all.py \
+  --portfolio my_portfolio.json \
+  --start 2018-01-01 \
+  --end 2020-12-31 \
+  --output output/2018_2020
+
+python run_all.py \
+  --portfolio my_portfolio.json \
+  --start 2021-01-01 \
+  --end 2023-12-31 \
+  --output output/2021_2023
+```
+
+---
+
+## ⚙️ Customization Options
+
+### Portfolio Configuration
+
+```json
+{
+  "owner": "Your Name",
+  "currency": "USD",
+  "positions": [
+    {"ticker": "SYMBOL", "quantity": 10.5}
+  ],
+  "cash": 1000,
+  "benchmark": "SPY",           // Can be any ticker
+  "risk_free_rate": 0.04,       // 4% annual
+  "confidence_level": 0.95,     // 95% for VaR/CVaR
+  "risk_horizon_days": 252,     // 1 year
+  "rebalance_frequency": "monthly"
+}
+```
+
+### Supported Assets
+
+- ✅ US Stocks (AAPL, MSFT, etc.)
+- ✅ ETFs (VTI, VOO, BND, etc.)
+- ✅ Crypto (BTC-USD, ETH-USD, etc.)
+- ✅ International (use Yahoo Finance tickers)
+- ✅ Fractional shares
+
+### Data Sources
+
+**Default: Yahoo Finance (Free)**
+```bash
+python data_fetcher.py --source yahoo ...
+```
+
+**Alpha Vantage (Optional, API key required)**
+```bash
+export ALPHA_VANTAGE_KEY=your_key
+python data_fetcher.py --source alpha_vantage ...
+```
+
+**Local CSV**
+```bash
+python data_fetcher.py --source my_prices.csv ...
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### "Failed to fetch data"
+
+**Problem**: Can't download price data
+
+**Solutions**:
+- Check internet connection
+- Verify ticker symbols (use Yahoo Finance format)
+- Try `--no-cache` flag
+- Use local CSV as fallback
+
+```bash
+python data_fetcher.py --portfolio my_portfolio.json --start 2020-01-01 --end 2025-10-30 --output data/prices.parquet --no-cache
+```
+
+### "Too much missing data"
+
+**Problem**: Some tickers have incomplete data
+
+**Solutions**:
+- Use longer date range
+- Increase missing data threshold
+- Remove problematic tickers
+
+```bash
+python data_cleaner.py --input data/prices.parquet --output data/cleaned.parquet --max-missing 0.3
+```
+
+### "Module not found"
+
+**Problem**: Missing dependencies
+
+**Solution**:
+```bash
+pip install -r requirements.txt
+```
+
+### Low Performance
+
+**Problem**: Analysis takes too long
+
+**Solutions**:
+- Reduce simulation count (default: 10,000)
+- Use shorter date range
+- Enable caching (default: enabled)
+
+```bash
+python simulator.py --n-sims 1000 ...  # Faster, less accurate
+```
+
+---
+
+## 📚 Next Steps
+
+### Learn More
+
+1. **Read full documentation**: [README.md](README.md)
+2. **Module details**: [MODULES_README.md](MODULES_README.md)
+3. **Run tests**: `pytest tests/ -v`
+
+### Advanced Features
+
+- **Portfolio Optimization**: See `optimizer.py` (coming soon)
+- **Backtesting**: See `backtester.py` (coming soon)
+- **Custom Reports**: See `report_generator.py` (coming soon)
+
+### Get Help
+
+- 📖 Check documentation
+- 🐛 Report issues on GitHub
+- 💬 Join community discussions
+- 📧 Contact support
+
+---
+
+## ⚠️ Important Notes
+
+### Security
+
+- ❌ **Never commit** `.env` files with API keys
+- ❌ **Don't share** portfolio JSON files publicly (contains your holdings)
+- ✅ **Use environment variables** for secrets
+- ✅ **Review** `.gitignore` before committing
+
+### Disclaimers
+
+- 📊 **Past performance** doesn't guarantee future results
+- 🎲 **Models** are simplifications and have limitations
+- 💡 **VaR** can underestimate tail risk in market crashes
+- 🔄 **Recalibrate** risk metrics monthly
+- 🏦 **This is not** financial advice - consult professionals
+
+### Model Assumptions
+
+- Returns follow log-normal distribution (may underestimate extreme events)
+- Historical patterns predict future (breaks during regime changes)
+- Correlations are stable (can shift rapidly in crises)
+- No market impact from your trades
+
+---
+
+## 🎉 Success Checklist
+
+After running the system, you should have:
+
+- ✅ Downloaded price data for your portfolio
+- ✅ Calculated comprehensive risk metrics (VaR, CVaR, Sharpe, etc.)
+- ✅ Run Monte Carlo simulations
+- ✅ Generated summary reports
+- ✅ Interactive dashboard accessible at http://localhost:8501
+
+**Congratulations!** You now have professional-grade risk analysis for your portfolio.
+
+---
+
+## 📞 Getting Help
+
+**Quick Commands Reference**:
+
+```bash
+make help           # Show all available commands
+python run_all.py --help    # Show pipeline options
+pytest              # Run tests
+streamlit run dashboard.py  # Launch dashboard
+```
+
+**Common Issues**: Check [README.md](README.md) troubleshooting section
+
+**Report Bugs**: Open an issue on GitHub with:
+- Your command
+- Error message
+- Python version
+- OS version
+
+---
+
+**Happy Investing! 📈**

@@ -1,0 +1,102 @@
+.PHONY: help install test clean run dashboard docker-build docker-run
+
+# Default target
+help:
+	@echo "Retail Risk Kit - Available Commands:"
+	@echo ""
+	@echo "  make install        - Install dependencies"
+	@echo "  make test          - Run unit tests"
+	@echo "  make run           - Run full analysis pipeline"
+	@echo "  make dashboard     - Launch interactive dashboard"
+	@echo "  make clean         - Clean generated files"
+	@echo "  make docker-build  - Build Docker image"
+	@echo "  make docker-run    - Run in Docker container"
+	@echo ""
+
+# Install dependencies
+install:
+	pip install -r requirements.txt
+
+# Run tests
+test:
+	pytest tests/ -v
+
+# Run tests with coverage
+test-coverage:
+	pytest tests/ --cov=. --cov-report=html --cov-report=term
+
+# Clean generated files
+clean:
+	rm -rf output/ cache/ data/*.parquet
+	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	find . -type f -name "*.pyc" -delete
+	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
+
+# Run full pipeline
+run:
+	@echo "Running full portfolio risk analysis..."
+	@mkdir -p output
+	python run_all.py --portfolio sample_data/example_portfolio.json
+
+# Run with custom portfolio
+run-custom:
+	@read -p "Enter portfolio JSON path: " portfolio; \
+	python run_all.py --portfolio $$portfolio
+
+# Launch dashboard
+dashboard:
+	streamlit run dashboard.py
+
+# Fetch data only
+fetch-data:
+	python data_fetcher.py \
+		--portfolio sample_data/example_portfolio.json \
+		--start 2020-01-01 \
+		--end 2025-10-30 \
+		--output data/prices.parquet
+
+# Calculate risk metrics only
+risk-metrics:
+	python risk_engine.py \
+		--prices data/prices.parquet \
+		--portfolio sample_data/example_portfolio.json \
+		--output output/risk_summary.json
+
+# Run Monte Carlo simulation only
+simulate:
+	python simulator.py \
+		--prices data/prices.parquet \
+		--portfolio sample_data/example_portfolio.json \
+		--output output/simulation_results.json
+
+# Docker commands
+docker-build:
+	docker build -t retail-risk-kit .
+
+docker-run:
+	docker run -v $$(pwd)/output:/app/output retail-risk-kit
+
+docker-dashboard:
+	docker run -p 8501:8501 retail-risk-kit streamlit run dashboard.py
+
+docker-shell:
+	docker run -it --entrypoint /bin/bash retail-risk-kit
+
+# Development helpers
+lint:
+	flake8 . --max-line-length=100 --exclude=venv,env,.git,__pycache__
+
+format:
+	black . --line-length=100
+
+# Create sample data directory
+setup:
+	mkdir -p sample_data cache output data
+	@echo "Directories created: sample_data, cache, output, data"
+
+# Quick start
+quick-start: install setup run
+	@echo ""
+	@echo "Analysis complete! Check output/ directory for results."
+	@echo "Run 'make dashboard' to view interactive dashboard."
